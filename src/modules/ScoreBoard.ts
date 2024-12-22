@@ -1,6 +1,7 @@
+import { makeAutoObservable } from "mobx";
 import { Power } from "./enums";
 
-const greenBoxes: {
+export const greenBoxes: {
   score: number;
   power?: Power;
   valueNeeded: number;
@@ -72,7 +73,9 @@ export class ScoreBoard {
     public nbReRollDone = 0,
     public nbFreeActionDone = 0,
     public nbTurnCompleted = 0
-  ) {}
+  ) {
+    makeAutoObservable(this);
+  }
 
   validateGreenValue(value: number) {
     if (value < greenBoxes[this.greenValue].valueNeeded) {
@@ -245,15 +248,16 @@ export class ScoreBoard {
 
   get yellowScore() {
     let score = 0;
-    for (let i = 0; i < yellowMatrix[0].length; i++) {
+    for (let i = 0; i < this.yellowValues[0].length; i++) {
       let j = 0;
       while (
-        j < yellowMatrix.length &&
-        yellowMatrix[j][i] !== null
+        j < this.yellowValues.length &&
+        this.yellowValues[j][i] === null
       ) {
         j++;
       }
-      if (j === yellowMatrix.length) {
+      console.log(j, this.yellowValues.length, i);
+      if (j === this.yellowValues.length) {
         score += yellowColumnScores[i];
       }
     }
@@ -268,21 +272,25 @@ export class ScoreBoard {
     }
 
     if (this.orangeValues.length >= 8) {
+      console.log("orangeValues");
       nb++;
     }
 
     if (this.purpleValues.length >= 7) {
+      console.log("purpleValues");
       nb++;
     }
 
     let i = 0;
     while (
-      i < yellowMatrix[0].length &&
-      yellowMatrix[yellowMatrix.length - 1][i] === null
+      i < this.yellowValues[0].length &&
+      this.yellowValues[this.yellowValues.length - 1][i] ===
+        null
     ) {
       i++;
     }
-    if (i === yellowMatrix[0].length) {
+    if (i === this.yellowValues[0].length) {
+      console.log("yellowValues");
       nb++;
     }
 
@@ -308,5 +316,16 @@ export class ScoreBoard {
     );
 
     return smallestScore * this.nbFoxes;
+  }
+
+  get scoreTotal() {
+    return (
+      this.yellowScore +
+      this.blueScore +
+      this.greenScore +
+      this.orangeScore +
+      this.purpleScore +
+      this.foxScore
+    );
   }
 }

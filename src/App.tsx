@@ -187,6 +187,36 @@ const App = observer(
               ))
             )}
           </div>
+          <div className="blues">
+            {[
+              null,
+              ...new Array(11).fill("").map((_, i) => i + 2)
+            ].map((index) => (
+              <div
+                key={index}
+                className="blue"
+                onClick={() => {
+                  if (index != null) {
+                    if (
+                      scoreBoard.blueValues.includes(index)
+                    ) {
+                      scoreBoard.blueValues =
+                        scoreBoard.blueValues.filter(
+                          (e) => e !== index
+                        );
+                    } else {
+                      scoreBoard.blueValues.push(index);
+                    }
+                  }
+                }}
+              >
+                {index &&
+                  scoreBoard.blueValues.includes(index) && (
+                    <div className="blue-completed">X</div>
+                  )}
+              </div>
+            ))}
+          </div>
           <div className="greens">
             {greenBoxes.map((_, index) => (
               <div

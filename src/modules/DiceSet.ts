@@ -1,20 +1,54 @@
+import { makeAutoObservable } from "mobx";
+
 export class DiceSet {
   constructor(
     public dices = new Array(6).fill(0),
-    public usedIndexes: number[] = []
+    public keptIndexes: number[] = [],
+    public removedIndexes: number[] = []
   ) {
+    this.roll();
+    makeAutoObservable(this);
+  }
+
+  reset() {
+    this.dices = new Array(6).fill(0);
+    this.keptIndexes = [];
+    this.removedIndexes = [];
     this.roll();
   }
 
   roll() {
-    this.dices = this.dices.map(
-      () => Math.floor(Math.random() * 6) + 1
+    this.dices = this.currentDices.map((d) =>
+      d === null ? null : Math.floor(Math.random() * 6) + 1
+    );
+  }
+
+  removeDice(index: number) {
+    this.removedIndexes.push(index);
+  }
+
+  keepDice(index: number) {
+    this.keptIndexes.push(index);
+  }
+
+  get removedDices() {
+    return this.removedIndexes.map(
+      (index) => this.dices[index]
+    );
+  }
+
+  get keptDices() {
+    return this.keptIndexes.map(
+      (index) => this.dices[index]
     );
   }
 
   get currentDices(): (number | null)[] {
     return this.dices.map((dice, index) => {
-      return this.usedIndexes.includes(index) ? null : dice;
+      return this.keptIndexes.includes(index) ||
+        this.removedDices.includes(index)
+        ? null
+        : dice;
     });
   }
 

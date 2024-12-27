@@ -2,6 +2,11 @@
   box-sizing: border-box;
 }
 
+.game {
+  display: flex;
+  flex-direction: row;
+}
+
 .board {
   background-image: url("/tres-fute.jpg");
   background-repeat: no-repeat;
@@ -223,6 +228,34 @@
         aspect-ratio: 1/1;
         font-size: 33px;
       }
+    }
+  }
+}
+
+.dices {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+
+  .dice-list {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    gap: 20px;
+
+    .dice {
+      width: 50px;
+      height: 50px;
+      border-radius: 15%;
+      background-color: black;
+      border: 1px solid black;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 30px;
+      color: lightgrey;
+      cursor: pointer;
     }
   }
 }

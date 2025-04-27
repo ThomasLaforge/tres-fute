@@ -1,5 +1,5 @@
 import { DiceSet } from "./DiceSet";
-import { ScoreBoard } from "./ScoreBoard";
+import { ScoreBoard } from "./ScoreBoards/TresFute";
 
 export class Game {
   constructor(

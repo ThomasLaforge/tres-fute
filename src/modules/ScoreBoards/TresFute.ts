@@ -1,5 +1,5 @@
 import { makeAutoObservable } from "mobx";
-import { Power } from "./enums";
+import { Power } from "../enums";
 
 export const greenBoxes: {
   score: number;

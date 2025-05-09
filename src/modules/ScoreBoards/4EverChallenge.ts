@@ -5,18 +5,26 @@ const NB_YELLOW_COLUMNS = 5;
 
 // const yellowTopRowPowers = [
 //   null,
-//   Power.FitNumber,
-//   Power.GreyCheck,
+//   Power.ReRoll,
 //   Power.GreenCheck,
-//   Power.Fox
+//   Power.GreyCheck,
+//   Power.YellowCheck
 // ];
 
 // const yellowMiddleRowPowers = [
-//   Power.ReRoll,
+//   Power.FitNumber,
+//   null,
 //   Power.PinkCheck,
-//   Power.BlueCheck,
+//   null,
+//   Power.Fox
+// ];
+
+// const yellowBottomRowPowers = [
+//   null,
 //   Power.FreeAction,
-//   Power.YellowCheck
+//   null,
+//   Power.BlueCheck,
+//   null
 // ];
 
 const yellowColumnScores = [10, 10, 15, 15, 20];
@@ -26,7 +34,7 @@ interface IBlueCheck {
   whiteValue: number;
 }
 
-// const bluePowers = [
+// const blueDPowers = [
 //   Power.GreenCheck,
 //   Power.PinkCheck,
 //   Power.YellowCheck,
@@ -53,7 +61,9 @@ interface IGreyBox {
   power?: Power;
 }
 
-const greyColumnScores = [1, 2, 3, 4, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11];
+const greyColumnScores = [
+  1, 2, 2, 2, 4, 5, 4, 5, 6, 5, 6, 7, 8, 8, 6, 9, 9, 10, 11
+];
 const greyZones: IGreyBox[] = [
   {
     parts: [{ rowIndex: 0, columnIndex: 0 }],
@@ -215,6 +225,10 @@ const greyZones: IGreyBox[] = [
   }
 ];
 
+const greyColumnNbEmptyBoxes = [
+  1, 0, 1, 2, 0, 0, 1, 1, 0, 2, 1, 0, 0, 0, 2, 0, 0, 0, 0
+];
+
 const nbWhiteBoxes = greyZones.filter(
   (zone) => zone.color === GreyColor.White
 ).length;
@@ -225,26 +239,29 @@ const nbDarkGreyBoxes = greyZones.filter(
   (zone) => zone.color === GreyColor.DarkGrey
 ).length;
 
-const GREEN_DOUBLE_START_INDEX = 3;
+const greenMultiplicators = [1, 2, 1, 2, 1, 2, 1, 2, 1, 3, 3];
 const greenPowers = [
-  Power.ReRoll,
-  Power.BlueCheck,
   Power.FitNumber,
-  Power.YellowCheck,
+  null,
   Power.GreyCheck,
-  Power.FreeAction,
-  Power.PinkCheck,
+  null,
   Power.BlueCheck,
+  null,
+  Power.FreeAction,
+  null,
   Power.YellowCheck,
   Power.Fox,
-  Power.FreeAction
+  Power.PinkCheck
 ];
 
 const pinkScores = [2, 4, 6, 9, 12, 15, 19, 23, 27, 32, 37, 42];
 
 export class ScoreBoard {
   constructor(
-    public greenValues: [number[], number[]] = [[], []],
+    public greenValues: [number[], (number | null)[]] = [
+      [],
+      [null, 1, null, 2, null, 3, null, 4, null, null, null, null]
+    ],
     public yellowValues: [number[], number[], number[]] = [[], [], []],
     public pinkValues: number[] = [],
     public greyZones: IGreyBox[] = [],
@@ -258,7 +275,18 @@ export class ScoreBoard {
   }
 
   addGreenValue(value: number, rowIndex: number) {
-    this.greenValues[rowIndex].push(value);
+    if (rowIndex === 0) {
+      this.greenValues[rowIndex].push(value);
+    } else {
+      const nextIndex = this.greenValues[rowIndex].findIndex(
+        (val) => val === null
+      );
+      if (nextIndex === -1) {
+        throw new Error("This row is already full");
+      } else {
+        this.greenValues[rowIndex][nextIndex] = value;
+      }
+    }
   }
 
   addYellowValue(value: number, rowIndex: number) {
@@ -267,7 +295,7 @@ export class ScoreBoard {
     }
     if (
       rowIndex === 0 &&
-      this.yellowValues[rowIndex][this.yellowValues[rowIndex].length - 1] >=
+      this.yellowValues[rowIndex][this.yellowValues[rowIndex].length - 1] <=
         value
     ) {
       throw new Error("This value is too low for first row");
@@ -327,29 +355,54 @@ export class ScoreBoard {
     ).length;
     nbReRoll += nbReRollFromGreys;
 
-    if (this.yellowValues[1].length > 0) {
-      nbReRoll++;
-    }
-
-    if (this.greenValues[1].length > 0) {
+    if (this.yellowValues[0].length >= 2) {
       nbReRoll++;
     }
 
     if (
-      this.pinkValues.length >= 5 &&
-      (this.pinkValues[4] === 5 || this.pinkValues[4] === 6)
+      this.pinkValues.length >= 2 &&
+      (this.pinkValues[1] === 5 || this.pinkValues[1] === 6)
     ) {
       nbReRoll++;
     }
 
     const nbBlueChecksInDiagonal = this.blueChecks.filter(
-      (check) => check.blueValue === check.whiteValue
+      (check) => check.whiteValue === 1
     ).length;
     if (nbBlueChecksInDiagonal >= 2) {
       nbReRoll++;
     }
 
     return nbReRoll;
+  }
+
+  get nbFitNumbers() {
+    let nbFitNumbers = 0;
+
+    if (this.nbTurnCompleted >= 3) {
+      nbFitNumbers++;
+    }
+
+    if (this.yellowValues[1].length >= 1) {
+      nbFitNumbers++;
+    }
+
+    const nbGreyZonesWithFitNumber = this.greyZones.filter(
+      (zone) => zone.power === Power.FitNumber
+    ).length;
+    nbFitNumbers += nbGreyZonesWithFitNumber;
+
+    const nbLowGreenFitNumbers = this.greenValues[1][0] !== null ? 1 : 0;
+    nbFitNumbers += nbLowGreenFitNumbers;
+
+    if (this.pinkValues.length >= 10) {
+      nbFitNumbers++;
+    }
+    if (this.pinkValues.length >= 6) {
+      nbFitNumbers++;
+    }
+
+    return nbFitNumbers;
   }
 
   get nbFreeAction() {
@@ -359,14 +412,16 @@ export class ScoreBoard {
       nbFreeAction++;
     }
 
-    if (this.yellowValues[1].length >= 4) {
+    nbFreeAction += Math.floor(this.nbFitNumbers / 3);
+
+    if (this.yellowValues[2].length >= 2) {
       nbFreeAction++;
     }
 
-    const nbBlueChecksInFourthRow = this.blueChecks.filter(
-      (check) => check.blueValue === 4
+    const nbBlueChecksInThirdColumn = this.blueChecks.filter(
+      (check) => check.whiteValue === 3
     ).length;
-    if (nbBlueChecksInFourthRow >= 2) {
+    if (nbBlueChecksInThirdColumn >= 2) {
       nbFreeAction++;
     }
 
@@ -375,17 +430,12 @@ export class ScoreBoard {
     ).length;
     nbFreeAction += nbGreyZonesWithFreeAction;
 
-    const nbLowGreenValues = this.greenValues[1].length;
-    if (nbLowGreenValues >= 6) {
-      nbFreeAction++;
-    }
-    if (nbLowGreenValues === greenPowers.length) {
-      nbFreeAction++;
-    }
+    const nbLowGreenValues = this.greenValues[1][6] != null ? 1 : 0;
+    nbFreeAction += nbLowGreenValues;
 
     if (
-      this.pinkValues.length >= 4 &&
-      (this.pinkValues[3] === 5 || this.pinkValues[3] === 6)
+      this.pinkValues.length >= 7 &&
+      (this.pinkValues[6] === 5 || this.pinkValues[6] === 6)
     ) {
       nbFreeAction++;
     }
@@ -395,16 +445,21 @@ export class ScoreBoard {
 
   get greenScore() {
     let score = 0;
-    const nGreenValuesToConsider = Math.min(
-      this.greenValues[0].length,
-      this.greenValues[1].length
+
+    const firstIndexNull = this.greenValues[1].findIndex(
+      (value) => value === null
     );
-    for (let i = 0; i < nGreenValuesToConsider; i++) {
-      let scoreToAdd = this.greenValues[0][i] + this.greenValues[1][i];
-      if (i >= GREEN_DOUBLE_START_INDEX) {
-        scoreToAdd *= 2;
-      }
-      score += scoreToAdd;
+
+    const nbGreenValuesToConsider = Math.min(
+      this.greenValues[0].length,
+      firstIndexNull
+    );
+
+    for (let i = 0; i < nbGreenValuesToConsider; i++) {
+      const multiplicator = greenMultiplicators[i];
+      const scoreToAdd =
+        this.greenValues[0][i] + (this.greenValues[1][i] as number);
+      score += scoreToAdd * multiplicator;
     }
     return score;
   }
@@ -413,6 +468,9 @@ export class ScoreBoard {
     const scoreFromPosition =
       this.pinkValues.length > 0 ? pinkScores[this.pinkValues.length - 1] : 0;
     const scoreFromValues = this.pinkValues.reduce((acc, value) => {
+      if (value === 1) {
+        return acc - 5;
+      }
       if (value === 2) {
         return acc + 2;
       }
@@ -461,11 +519,19 @@ export class ScoreBoard {
       score += yellowColumnScores[i];
     }
 
-    this.yellowValues[1].forEach((value) => {
-      score -= value;
+    this.yellowValues[1].forEach((value, i) => {
+      if (i % 2 === 0) {
+        score -= value;
+      } else {
+        score += value;
+      }
     });
-    this.yellowValues[2].forEach((value) => {
-      score += value;
+    this.yellowValues[2].forEach((value, i) => {
+      if (i % 2 === 0) {
+        score += value;
+      } else {
+        score -= value;
+      }
     });
 
     return score;
@@ -489,17 +555,12 @@ export class ScoreBoard {
 
   get greyScore() {
     return this.greyColumnValues.reduce((score, value, index) => {
-      if (value === 4) {
+      const nbEmptyBoxes = greyColumnNbEmptyBoxes[index];
+      if (value === 4 - nbEmptyBoxes) {
         return score + greyColumnScores[index];
       }
       return score;
     });
-  }
-
-  // TODO
-  get nbFitNumbers() {
-    const nbFitNumbers = 0;
-    return nbFitNumbers;
   }
 
   get nbFoxes() {
